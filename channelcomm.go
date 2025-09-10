@@ -1,56 +1,68 @@
 package main
 
-func produceNumbers(ch chan int) {
+import (
+	"fmt"
+	"sync"
+)
+
+func produceNumbers(ch chan int, wg *sync.WaitGroup) {
+	defer wg.Done()
 	for i := 0; i < 10; i++ {
 		ch <- i
 	}
+	close(ch)
 }
 
-func printNumbers(ch chan int, done chan bool) {
+func printNumbers(ch chan int, wg *sync.WaitGroup) {
+	defer wg.Done()
 	for num := range ch {
 		println(num)
 	}
-	done <- true
 }
 
 func ChannelCommunication() {
 	ch := make(chan int)
-	done := make(chan bool)
 
-	go produceNumbers(ch)
-	go printNumbers(ch, done)
+	var wg sync.WaitGroup
 
-	<-done
-	close(ch)
-	close(done)
+	wg.Add(2)
+	go produceNumbers(ch, &wg)
+	go printNumbers(ch, &wg)
+
+	wg.Wait()
+
 }
 
-func Producer(ch []chan int, count int) {
-	for i := 0; i < count; i++ {
-		ch[i%len(ch)] <- i
+// Producer 生产者函数：向通道发送 100 个整数
+func Producer(ch chan<- int, wg *sync.WaitGroup) {
+	defer wg.Done()
+	for i := 1; i <= 100; i++ {
+		ch <- i
 	}
-	for _, c := range ch {
-		close(c)
-	}
+	close(ch) // 生产完成后关闭通道
 }
 
-func Consumer(ch chan int, done chan bool) {
+// Consumer 消费者函数：从通道接收整数并打印
+func Consumer(ch <-chan int, wg *sync.WaitGroup) {
+	defer wg.Done()
 	for num := range ch {
-		println("received", num)
+		fmt.Println("received:", num)
 	}
-	done <- true
 }
 
 func MultipleChannelCommunication() {
-	numChannels := 10
-	ch := make([]chan int, numChannels)
-	done := make(chan bool)
+	ch := make(chan int, 10) // 带缓冲的通道
+	var wg sync.WaitGroup
 
-	for i := 0; i < numChannels; i++ {
-		ch[i] = make(chan int)
-		go Consumer(ch[i], done)
-	}
+	// 启动生产者
+	wg.Add(1)
+	go Producer(ch, &wg)
 
-	Producer(ch, 100)
+	// 启动消费者
+	wg.Add(1)
+	go Consumer(ch, &wg)
+
+	// 等待完成
+	wg.Wait()
 
 }

@@ -7,21 +7,46 @@ import (
 )
 
 func printOddNumbers() {
-	for i := 1; i < 10; i += 2 {
+	for i := 1; i <= 10; i += 2 {
 		println(i)
 	}
 }
 
 func printEvenNumbers() {
-	for i := 2; i < 10; i += 2 {
+	for i := 2; i <= 10; i += 2 {
 		println(i)
 	}
 }
 
 func StartGoroutine() {
-	go printOddNumbers()
-	go printEvenNumbers()
-	select {}
+	// var wg sync.WaitGroup
+	// wg.Add(2)
+	// go printOddNumbers()
+	// defer wg.Done()
+	// go printEvenNumbers()
+	// defer wg.Done()
+	// wg.Wait()
+	var wg sync.WaitGroup
+	wg.Add(2) // 两个协程
+
+	// 打印奇数
+	go func() {
+		defer wg.Done()
+		for i := 1; i <= 10; i += 2 {
+			fmt.Println("奇数:", i)
+		}
+	}()
+
+	// 打印偶数
+	go func() {
+		defer wg.Done()
+		for i := 2; i <= 10; i += 2 {
+			fmt.Println("偶数:", i)
+		}
+	}()
+
+	// 等待两个协程结束
+	wg.Wait()
 }
 
 type Task func()
